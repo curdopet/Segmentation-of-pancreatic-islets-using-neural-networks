@@ -183,6 +183,8 @@ def get_images_cnt(data_root) -> int:
 if __name__ == "__main__":
     data_root, data_group, labels_csv, remove_small_exo = parse_input_arguments()
     json_dict = get_initial_json_dict(data_group)
+    
+    annotation_id = 0
 
     with Bar('Loading', max=get_images_cnt(data_root), fill='█', suffix='%(percent).1f%% - %(eta)ds') as bar:
         for image_name in next(os.walk(data_root))[2]:
@@ -196,13 +198,15 @@ if __name__ == "__main__":
             mask = get_mask(data_root, mask_name)
             islet_contours, exo_contours = get_contours(mask, remove_small_exo)
 
-            for contour_id, contour in enumerate(islet_contours):
-                annotation_json_dict = get_islet_annotation_json_dict(contour, contour_id, image_id, mask)
+            for contour in islet_contours:
+                annotation_json_dict = get_islet_annotation_json_dict(contour, annotation_id, image_id, mask)
                 json_dict['annotations'].append(annotation_json_dict)
+                annotation_id += 1
 
-            for contour_id, contour in enumerate(exo_contours):
-                annotation_json_dict = get_exo_annotation_json_dict(contour, len(islet_contours) + contour_id, image_id, mask)
+            for contour in exo_contours:
+                annotation_json_dict = get_exo_annotation_json_dict(contour, annotation_id, image_id, mask)
                 json_dict['annotations'].append(annotation_json_dict)
+                annotation_id += 1
 
             bar.next()
 
