@@ -91,9 +91,9 @@ class InstanceSegmentationResultsVisualizer:
             if instance.score < SCORE_THRESHOLD:
                 continue
 
-            x, y, w, h = [int(i) for i in instance.bbox]
-            bbox_image = cv2.rectangle(bbox_image, (x, y), (x + w, y + h), instance.color_bgr, BBOX_THICKNESS)
-            bbox_image = self.draw_bbox_score_label(bbox_image, instance.score, x, y)
+            x0, y0, x1, y1 = [int(i) for i in instance.bbox]
+            bbox_image = cv2.rectangle(bbox_image, (x0, y0), (x1, y1), instance.color_bgr, BBOX_THICKNESS)
+            bbox_image = self.draw_bbox_score_label(bbox_image, instance.score, x0, y0)
 
         return bbox_image
 
@@ -159,8 +159,8 @@ class InstanceSegmentationResultsVisualizer:
         text_size, _ = cv2.getTextSize(text, BBOX_SCORE_FONT, BBOX_SCORE_SCALE, BBOX_SCORE_THICKNESS)
         text_w, text_h = text_size
 
-        bbox_image = cv2.rectangle(bbox_image, (x, y), (x + text_w, y + text_h + 1), BBOX_SCORE_BG_COLOR, cv2.FILLED)
-        bbox_image = cv2.putText(bbox_image, text, (x, y + text_h), BBOX_SCORE_FONT, BBOX_SCORE_SCALE,
+        bbox_image = cv2.rectangle(bbox_image, (x, y - text_h - 2), (x + text_w, y - 1), BBOX_SCORE_BG_COLOR, cv2.FILLED)
+        bbox_image = cv2.putText(bbox_image, text, (x, y - 2), BBOX_SCORE_FONT, BBOX_SCORE_SCALE,
                                  BBOX_SCORE_FONT_COLOR,
                                  BBOX_SCORE_THICKNESS)
         return bbox_image
