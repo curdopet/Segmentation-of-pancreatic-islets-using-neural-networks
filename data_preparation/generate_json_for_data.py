@@ -6,29 +6,25 @@ import json
 import numpy as np
 import pandas as pd
 
-from itertools import groupby
 from progress.bar import Bar
+from typing import Optional
 
 
 DATA_GROUPS = ['training', 'validation', 'test']
 ISLET_CLASS = 0
-EXO_CLASS = 1
-SMALL_EXO_MAX_AREA_PX = 30
+MIN_BBOX_HEIGHT = 3
+MIN_BBOX_WIDTH = 3
 
 
-def parse_input_arguments() -> (str, str, str):
+def parse_input_arguments() -> (str, str, str, str):
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root", help="path to folder where images & masks are stored")
     parser.add_argument("data_group", help=f"data group - one of {DATA_GROUPS}")
+    parser.add_argument("dest_dir", help=f"path to folder, where generated json will be stored")
     parser.add_argument("labels_csv", help=f"path to file where labels are stored", default="labels.csv")
-    parser.add_argument(
-        "remove_small_exo",
-        help=f"whether to remove exo tissue of pixel area smaller than {SMALL_EXO_MAX_AREA_PX}",
-        default="false",
-    )   # we want the nn to focus on the larger segments
 
     args = parser.parse_args()
-    return args.data_root, args.data_group, args.labels_csv, args.remove_small_exo
+    return args.data_root, args.data_group, args.dest_dir, args.labels_csv
 
 
 def get_initial_json_dict(data_group: str) -> dict:
@@ -41,10 +37,6 @@ def get_initial_json_dict(data_group: str) -> dict:
                 'id': ISLET_CLASS,
                 'name': 'islet'
             },
-            {
-                'id': EXO_CLASS,
-                'name': 'exo'
-            }
         ]
     }
 
@@ -56,7 +48,7 @@ def get_image_id_and_mask_name(image_name: str, labels_csv: str) -> (int, str):
 
 
 def get_image_json_dict(image_id: int, data_root: str, image_name: str) -> dict:
-    image = cv2.imread(os.path.join(data_root, image_name), cv2.IMREAD_COLOR)
+    image = cv2.imread(os.path.join(data_root, "inputs", image_name), cv2.IMREAD_COLOR)
     return {
         'id': image_id,
         'width': image.shape[1],
@@ -66,7 +58,7 @@ def get_image_json_dict(image_id: int, data_root: str, image_name: str) -> dict:
 
 
 def get_mask(data_root: str, mask_name: str) -> np.array:
-    return cv2.imread(os.path.join(data_root, mask_name), cv2.IMREAD_GRAYSCALE)
+    return cv2.imread(os.path.join(data_root, "masks", mask_name), cv2.IMREAD_GRAYSCALE)
 
 
 def get_islet_and_exo_masks(mask: np.array):
@@ -107,32 +99,19 @@ def get_contour_area(contour: np.array, mask: np.array) -> np.array:
     return int(np.sum(contour_mask)//255)
 
 
-def remove_small_exo_contours(contours: np.array, mask: np.array) -> np.array:
-    exo_contours = list()
-    for contour in contours:
-        if get_contour_area(contour, mask) > SMALL_EXO_MAX_AREA_PX:
-            exo_contours.append(contour)
-
-    return exo_contours
-
-
-def get_contours(mask: np.array, remove_small_exo: bool) -> (np.array, np.array):
+def get_contours(mask: np.array) -> np.array:
     islet_mask, exo_mask = get_islet_and_exo_masks(mask)
 
     *_, islet_contours, _ = cv2.findContours(islet_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     islet_contours = list(filter(lambda contour: len(contour) >= 5, islet_contours))
 
-    *_, exo_contours, _ = cv2.findContours(exo_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-    exo_contours = list(filter(lambda contour: len(contour) >= 5, exo_contours))
-
-    if remove_small_exo:
-        exo_contours = remove_small_exo_contours(exo_contours, exo_mask)
-
-    return islet_contours, exo_contours
+    return islet_contours
 
 
-def get_islet_annotation_json_dict(contour: np.array, contour_id: int, image_id: int, mask: np.array) -> dict:
+def get_islet_annotation_json_dict(contour: np.array, contour_id: int, image_id: int, mask: np.array) -> Optional[dict]:
     x, y, w, h = cv2.boundingRect(contour)
+    if w < MIN_BBOX_WIDTH or h < MIN_BBOX_HEIGHT:
+        return None
 
     return {
         'id': contour_id,
@@ -145,49 +124,23 @@ def get_islet_annotation_json_dict(contour: np.array, contour_id: int, image_id:
     }
 
 
-def binary_mask_to_rle(binary_mask):
-    rle = {'counts': [], 'size': list(binary_mask.shape)}
-    counts = rle.get('counts')
-    for i, (value, elements) in enumerate(groupby(binary_mask.ravel(order='F'))):
-        if i == 0 and value == 1:
-            counts.append(0)
-        counts.append(len(list(elements)))
-    return rle
-
-
-def get_exo_annotation_json_dict(contour: np.array, contour_id: int, image_id: int, mask: np.array) -> dict:
-    x, y, w, h = cv2.boundingRect(contour)
-    contour_mask = get_contour_mask(contour, mask, translated=False)
-    rle = binary_mask_to_rle(np.asfortranarray(contour_mask))
-
-    return {
-        'id': contour_id,
-        'image_id': image_id,
-        'iscrowd': 1,
-        'category_id': EXO_CLASS,
-        'segmentation': [rle.get('counts')],
-        'bbox': [x, y, w, h],
-        'area': int(np.sum(contour_mask)//255)
-    }
-
-
 def is_image(file_name: str) -> bool:
     return file_name.endswith(".png") or file_name.endswith(".jpg") or \
            file_name.endswith(".bmp") or file_name.endswith(".tif")
 
 
-def get_images_cnt(data_root) -> int:
+def get_images_cnt(data_root: str) -> int:
     return len([f for f in os.listdir(data_root) if "GT" not in f and is_image(f)])
 
 
 if __name__ == "__main__":
-    data_root, data_group, labels_csv, remove_small_exo = parse_input_arguments()
+    data_root, data_group, dest_dir, labels_csv = parse_input_arguments()
     json_dict = get_initial_json_dict(data_group)
     
     annotation_id = 0
 
-    with Bar('Loading', max=get_images_cnt(data_root), fill='█', suffix='%(percent).1f%% - %(eta)ds') as bar:
-        for image_name in next(os.walk(data_root))[2]:
+    with Bar('Loading', max=get_images_cnt(data_root + "/inputs"), fill='█', suffix='%(percent).1f%% - %(eta)ds') as bar:
+        for image_name in next(os.walk(data_root + "/inputs"))[2]:
             if "GT" in image_name or image_name.startswith(".") or not is_image(image_name):
                 continue
 
@@ -196,19 +149,16 @@ if __name__ == "__main__":
             json_dict['images'].append(image_json_dict)
 
             mask = get_mask(data_root, mask_name)
-            islet_contours, exo_contours = get_contours(mask, remove_small_exo)
+            islet_contours = get_contours(mask)
 
             for contour in islet_contours:
                 annotation_json_dict = get_islet_annotation_json_dict(contour, annotation_id, image_id, mask)
-                json_dict['annotations'].append(annotation_json_dict)
-                annotation_id += 1
-
-            for contour in exo_contours:
-                annotation_json_dict = get_exo_annotation_json_dict(contour, annotation_id, image_id, mask)
+                if annotation_json_dict is None:
+                    continue
                 json_dict['annotations'].append(annotation_json_dict)
                 annotation_id += 1
 
             bar.next()
 
-    with open(f"coco-format-{data_group}.json", "w") as f:
+    with open(os.path.join(dest_dir, f"coco-format-{data_group}-islets-only-gt{MIN_BBOX_HEIGHT-1}.json"), "w") as f:
         json.dump(json_dict, f)
