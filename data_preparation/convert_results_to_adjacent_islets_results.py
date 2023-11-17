@@ -102,7 +102,7 @@ if __name__ == "__main__":
     image_names = [f for f in next(os.walk(os.path.join(data_root, "inputs")))[2] if "GT" not in f and is_image(f)]
 
     if nn_masks_path is not None:
-        os.makedirs(os.path.join(nn_masks_path, ADJACENT_ISLETS_DIR + "-nn"), exist_ok=True)  # TODO: remove -nn
+        os.makedirs(os.path.join(nn_masks_path, ADJACENT_ISLETS_DIR), exist_ok=True)
     else:
         instance_results_parser = InstanceSegmentationResultsParser(pkl_file)
         adjacent_pkl_content = list()
@@ -117,12 +117,12 @@ if __name__ == "__main__":
                 continue
 
             if nn_masks_path is not None:
-                nn_mask = get_islets_mask(nn_masks_path, image_name, "GT")  # TODO: add correct suffix
+                nn_mask = get_islets_mask(nn_masks_path, image_name, "NN_islets")
                 adjacent_islets_nn_mask = get_nn_mask_on_adjacent_islets(gt_mask, nn_mask)
 
                 adjacent_islets_mask_name = "{}_NN_mask_adjacent_islets.png".format(image_name[:-4])
                 cv2.imwrite(
-                    os.path.join(nn_masks_path, ADJACENT_ISLETS_DIR + "-nn", adjacent_islets_mask_name),  # TODO: remove -nn
+                    os.path.join(nn_masks_path, ADJACENT_ISLETS_DIR, adjacent_islets_mask_name),
                     adjacent_islets_nn_mask,
                 )
             else:
