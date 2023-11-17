@@ -87,6 +87,7 @@ for a detailed evaluation and deeper understanding of the strengths and weakness
 to generated csvs has to be set in the notebook in the `user constants` section.
 
 <h3 id="adj-islets-eval">Evaluation only on adjacent islets</h3>
+
 #### 1. Prepare GT data
 To evaluate model only on adjacent islets, first, create GT masks that contains only adjacent islets by running:
 ```bash
