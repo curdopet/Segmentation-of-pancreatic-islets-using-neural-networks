@@ -9,6 +9,8 @@ import pandas as pd
 from progress.bar import Bar
 from typing import Optional
 
+from utils.checks import is_image
+
 
 DATA_GROUPS = ['training', 'validation', 'test']
 ISLET_CLASS = 0
@@ -122,11 +124,6 @@ def get_islet_annotation_json_dict(contour: np.array, contour_id: int, image_id:
         'bbox': [x, y, w, h],
         'area': get_contour_area(contour, mask)
     }
-
-
-def is_image(file_name: str) -> bool:
-    return file_name.endswith(".png") or file_name.endswith(".jpg") or \
-           file_name.endswith(".bmp") or file_name.endswith(".tif")
 
 
 def get_images_cnt(data_root: str) -> int:

@@ -1,7 +1,9 @@
 import pickle
 import random
 
-from typing import List, Tuple
+import pycocotools.mask as mask_util
+
+from typing import List, Optional, Tuple
 
 from visualization.constants import ISLET_LABEL, EXO_LABEL, CONTOUR_COLORS_RGB
 from visualization.custom_dataclasses.instance_segmentation_results import InstanceData, InstanceSegmentationResults
@@ -42,6 +44,22 @@ class InstanceSegmentationResultsParser:
                 )
 
         return instance_data
+
+    def get_islet_results_for_image(self, image_name) -> Optional[List[InstanceData]]:
+        for result in self.results:
+            if result.image_name == image_name:
+                return result.islet_instances
+        return None
+
+    def get_raw_results_for_image(self, image_name):
+        for result in self.raw_data:
+            if result["img_path"].split('/')[-1] == image_name:
+                return result
+        return None
+
+    @staticmethod
+    def decode_mask(encoded_mask):
+        return mask_util.decode(encoded_mask)
 
     @staticmethod
     def get_random_instance_color_bgr() -> Tuple[int, int, int]:

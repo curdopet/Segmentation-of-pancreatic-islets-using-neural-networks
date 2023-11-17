@@ -68,3 +68,7 @@ class Log:
     def update_per_image_log(self, image_name: str):
         self.per_image_log_info.current_image_num += 1
         self.per_image_log_info.image_name = image_name
+
+    def reset_image_log(self):
+        self.per_image_log_info.current_image_num = 0
+        self.per_image_log_info.image_name = ""
