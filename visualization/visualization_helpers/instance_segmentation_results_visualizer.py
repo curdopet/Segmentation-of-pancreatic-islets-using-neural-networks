@@ -20,7 +20,8 @@ class InstanceSegmentationResultsVisualizer:
             exo_instances: List[InstanceData],
             results_dir: str,
             gt_mask_dir: str,
-            visualize_exo: bool = False
+            visualize_exo: bool = False,
+            show_instance_scores: bool = True,
     ):
         self.image_name = image_path.split('/')[-1]
         self.image = cv2.imread(image_path, cv2.IMREAD_COLOR)
@@ -31,6 +32,7 @@ class InstanceSegmentationResultsVisualizer:
         self.islet_instances = islet_instances
         self.exo_instances = exo_instances
         self.visualize_exo = visualize_exo
+        self.show_instance_scores = show_instance_scores
 
         self.islet_instances_mask = self.draw_instances_masks(self.islet_instances)
         self.exo_instances_mask = self.draw_instances_masks(self.exo_instances) if self.visualize_exo else None
@@ -93,7 +95,8 @@ class InstanceSegmentationResultsVisualizer:
 
             x0, y0, x1, y1 = [int(i) for i in instance.bbox]
             bbox_image = cv2.rectangle(bbox_image, (x0, y0), (x1, y1), instance.color_bgr, BBOX_THICKNESS)
-            bbox_image = self.draw_bbox_score_label(bbox_image, instance.score, x0, y0)
+            if self.show_instance_scores:
+                bbox_image = self.draw_bbox_score_label(bbox_image, instance.score, x0, y0)
 
         return bbox_image
 

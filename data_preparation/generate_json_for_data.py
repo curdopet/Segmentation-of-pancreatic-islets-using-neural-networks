@@ -5,28 +5,37 @@ import cv2
 import json
 import numpy as np
 import pandas as pd
+import pycocotools.mask as mask_util
+import random
+
 
 from progress.bar import Bar
 from typing import Optional
 
 from utils.checks import is_image
+from visualization.constants import CONTOUR_COLORS_RGB, CONTOUR_THICKNESS
+from visualization.custom_dataclasses.instance_segmentation_results import InstanceData
+from visualization.visualization_helpers.instance_segmentation_results_visualizer import \
+    InstanceSegmentationResultsVisualizer
 
 
 DATA_GROUPS = ['training', 'validation', 'test']
 ISLET_CLASS = 0
 MIN_BBOX_HEIGHT = 3
 MIN_BBOX_WIDTH = 3
+DILATE = False
 
 
-def parse_input_arguments() -> (str, str, str, str):
+def parse_input_arguments() -> (str, str, str, str, bool):
     parser = argparse.ArgumentParser()
     parser.add_argument("data_root", help="path to folder where images & masks are stored")
     parser.add_argument("data_group", help=f"data group - one of {DATA_GROUPS}")
     parser.add_argument("dest_dir", help=f"path to folder, where generated json will be stored")
     parser.add_argument("labels_csv", help=f"path to file where labels are stored", default="labels.csv")
+    parser.add_argument("--visualize", default=False, required=False)
 
     args = parser.parse_args()
-    return args.data_root, args.data_group, args.dest_dir, args.labels_csv
+    return args.data_root, args.data_group, args.dest_dir, args.labels_csv, args.visualize
 
 
 def get_initial_json_dict(data_group: str) -> dict:
@@ -107,7 +116,20 @@ def get_contours(mask: np.array) -> np.array:
     *_, islet_contours, _ = cv2.findContours(islet_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     islet_contours = list(filter(lambda contour: len(contour) >= 5, islet_contours))
 
-    return islet_contours
+    if DILATE:
+        dilated_contours = list()
+        for contour in islet_contours:
+            countour_mask = np.zeros_like(islet_mask)
+            countour_mask = cv2.drawContours(countour_mask, contour, -1, (255, 255, 255), CONTOUR_THICKNESS)
+
+            kernel = np.ones((3, 3), np.uint8)
+            countour_mask = cv2.dilate(countour_mask, kernel, iterations=1)
+
+            *_, contours, _ = cv2.findContours(countour_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            dilated_contours.extend(contours)
+        return dilated_contours
+    else:
+        return islet_contours
 
 
 def get_islet_annotation_json_dict(contour: np.array, contour_id: int, image_id: int, mask: np.array) -> Optional[dict]:
@@ -130,8 +152,40 @@ def get_images_cnt(data_root: str) -> int:
     return len([f for f in os.listdir(data_root) if "GT" not in f and is_image(f)])
 
 
+def visualize_annotations(annotations: list, image_shape: tuple, image_path: str, gt_mask_dir: str):
+    instance_data = list()
+
+    for a in annotations:
+        annotation_mask = np.zeros(image_shape, dtype=np.uint8)
+        contour = np.array(a["segmentation"]).reshape((-1, 1, 2))
+        annotation_mask = cv2.drawContours(annotation_mask, contour, -1, (255, 255, 255), CONTOUR_THICKNESS)
+        encoded_mask = mask_util.encode(np.asfortranarray(annotation_mask))
+
+        x, y, w, h = a["bbox"]
+        color = random.choice(CONTOUR_COLORS_RGB)
+
+        instance_data.append(
+            InstanceData(
+                bbox=np.array([x, y, x + w, y + h]),
+                encoded_mask=encoded_mask,
+                score=1.,
+                color_bgr=(int(color[2]), int(color[1]), int(color[0])),
+            )
+        )
+
+    results_visualizer = InstanceSegmentationResultsVisualizer(
+        image_path=image_path,
+        islet_instances=instance_data,
+        exo_instances=list(),
+        results_dir="gt-visualization",
+        gt_mask_dir=gt_mask_dir,
+        show_instance_scores=False,
+    )
+    results_visualizer.save_all_visualizations()
+
+
 if __name__ == "__main__":
-    data_root, data_group, dest_dir, labels_csv = parse_input_arguments()
+    data_root, data_group, dest_dir, labels_csv, visualize = parse_input_arguments()
     json_dict = get_initial_json_dict(data_group)
     
     annotation_id = 0
@@ -148,14 +202,25 @@ if __name__ == "__main__":
             mask = get_mask(data_root, mask_name)
             islet_contours = get_contours(mask)
 
+            image_annotations = list()
+
             for contour in islet_contours:
                 annotation_json_dict = get_islet_annotation_json_dict(contour, annotation_id, image_id, mask)
                 if annotation_json_dict is None:
                     continue
                 json_dict['annotations'].append(annotation_json_dict)
+                image_annotations.append(annotation_json_dict)
                 annotation_id += 1
 
             bar.next()
+
+            if visualize:
+                visualize_annotations(
+                    image_annotations,
+                    (image_json_dict["height"], image_json_dict["width"]),
+                    os.path.join(data_root, "inputs", image_name),
+                    os.path.join(data_root, "masks")
+                )
 
     with open(os.path.join(dest_dir, f"coco-format-{data_group}-islets-only-gt{MIN_BBOX_HEIGHT-1}.json"), "w") as f:
         json.dump(json_dict, f)
