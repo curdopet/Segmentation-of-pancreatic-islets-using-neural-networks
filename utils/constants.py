@@ -24,3 +24,4 @@ class ModelType(Enum):
 
 
 ADJACENT_ISLETS_DIR = "adjacent_islets"
+ISLETS_ONLY_MASKS_DIR = "islets_only"
