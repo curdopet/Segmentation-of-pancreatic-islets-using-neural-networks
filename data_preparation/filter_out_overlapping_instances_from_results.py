@@ -101,7 +101,7 @@ if __name__ == "__main__":
                         contours.append(contour)
                         mask = cv2.drawContours(mask, [contour], -1, (255, 255, 255), thickness=cv2.FILLED)
 
-                        bboxes.append(instance.bbox)
+                        bboxes.append(instance.bbox.tolist())
                         masks.append(mask_util.encode(np.asfortranarray(contour_mask)))
                         scores.append(instance.score)
             bar.next()
