@@ -120,7 +120,7 @@ And run:
 qsub training/metacentrum_scripts/training_pipeline.sh
 ```
 
-## Validation
+## Prediction on the validation set
 The prediction on the validation dataset can be also obtained locally or by using MetaCentrum.
 
 ### Locally
@@ -173,6 +173,40 @@ python -m data_preparation.filter_out_overlapping_instances_from_results <pkl_fi
 
 It creates a file with filtered results with name suffix `_filtered.pkl` in the same folder as the `pkl_file` is.
 
+## Prediction on the test set
+Prediction on the test set is performed exactly the same way as the prediction on the validation set. The only difference is
+that the config file of the model that will be evaluated needs to be modified in the following way:
+
+The test_dataloader must contain the test data. Therefore, it needs to be changed from:
+```python
+test_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        ann_file='jsons/coco-format-validation-islets-only.json',
+        backend_args=None,
+        data_prefix=dict(img='validation_data/inputs/'), ...
+```
+to
+```python
+test_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        ann_file='jsons/coco-format-test-islets-only.json',
+        backend_args=None,
+        data_prefix=dict(img='test_data/inputs/'), ...
+```
+
+And the test evaluator from:
+```python
+test_evaluator = dict(
+    ann_file='../data_split/jsons/coco-format-validation-islets-only.json', ...
+```
+to
+```python
+test_evaluator = dict(
+    ann_file='../data_split/jsons/coco-format-test-islets-only.json', ..
+```
+
 ## Evaluation
 Model evaluation process consists of two steps:
 1. Generating csvs from GT and NN masks
@@ -181,7 +215,7 @@ Model evaluation process consists of two steps:
 ### Generating csvs from masks
 Csvs can be generated using following command:
 ```bash
-python -m evaluation.generate_csvs_for_report <data_root> <nn_type> <px_file> [--nn_masks_root <...>] [--pkl_file <...>] [--only_adjacent_islets <...>]
+python -m evaluation.generate_csvs_for_report <data_root> <nn_type> <--px_file <...>> [--nn_masks_root <...>] [--pkl_file <...>] [--only_adjacent_islets <...>]
 ```
 - `data_root` is path to a folder that contains two folders:
   - `inputs/` - contains input images
