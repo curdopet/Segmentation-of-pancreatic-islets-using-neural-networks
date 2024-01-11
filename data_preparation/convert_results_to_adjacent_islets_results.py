@@ -56,8 +56,12 @@ def get_nn_mask_on_adjacent_islets(gt_mask: np.array, nn_mask: np.array) -> np.a
     adjacent_islets_mask = np.zeros((*nn_mask.shape, 3), dtype=np.uint8)
 
     for islet_pair in image_stats_calculation.get_stats_for_matched_islets():
-        gt_islet = islet_pair.islet_gt
-        cv2.drawContours(adjacent_islets_mask, [gt_islet.contour], -1, (255, 255, 255), cv2.FILLED)
+        nn_islet = islet_pair.islet_nn
+        cv2.drawContours(adjacent_islets_mask, [nn_islet.contour], -1, (255, 255, 255), cv2.FILLED)
+
+    for islet_pair in image_stats_calculation.get_stats_for_incorrectly_separated_islets():
+        nn_islet = islet_pair.islet_nn
+        cv2.drawContours(adjacent_islets_mask, [nn_islet.contour], -1, (255, 255, 255), cv2.FILLED)
 
     return adjacent_islets_mask
 
@@ -68,6 +72,9 @@ def get_adjacent_islets_results(
         instance_results_parser: InstanceSegmentationResultsParser
 ) -> List[InstanceData]:
     adjacent_islets_results = list()
+
+    if islet_results is None:
+        return adjacent_islets_results
 
     for islet_result in islet_results:
         islet_mask = instance_results_parser.decode_mask(islet_result.encoded_mask)
@@ -127,6 +134,9 @@ if __name__ == "__main__":
                 )
             else:
                 islet_results = instance_results_parser.get_islet_results_for_image(image_name)
+                if islet_results is None:
+                    continue
+
                 adjacent_islets_results = get_adjacent_islets_results(gt_mask, islet_results, instance_results_parser)
 
                 image_raw_data = instance_results_parser.get_raw_results_for_image(image_name)
