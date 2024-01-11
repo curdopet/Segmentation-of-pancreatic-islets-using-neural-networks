@@ -144,7 +144,7 @@ def get_images_cnt(data_root: str) -> int:
     return len([f for f in os.listdir(data_root) if "GT" not in f and is_image(f)])
 
 
-def visualize_annotations(annotations: list, image_shape: tuple, image_path: str, gt_mask_dir: str):
+def visualize_annotations(annotations: list, image_shape: tuple, image_path: str, gt_mask_dir: str, data_root: str):
     instance_data = list()
 
     for a in annotations:
@@ -169,7 +169,7 @@ def visualize_annotations(annotations: list, image_shape: tuple, image_path: str
         image_path=image_path,
         islet_instances=instance_data,
         exo_instances=list(),
-        results_dir="gt-visualization",
+        results_dir=os.path.join(data_root, "gt-visualization"),
         gt_mask_dir=gt_mask_dir,
         show_instance_scores=False,
     )
@@ -211,8 +211,10 @@ if __name__ == "__main__":
                     image_annotations,
                     (image_json_dict["height"], image_json_dict["width"]),
                     os.path.join(data_root, "inputs", image_name),
-                    os.path.join(data_root, "masks")
+                    os.path.join(data_root, "masks"),
+                    data_root
                 )
 
+    os.makedirs(dest_dir, exist_ok=True)
     with open(os.path.join(dest_dir, f"coco-format-{data_group}-islets-only.json"), "w") as f:
         json.dump(json_dict, f)
