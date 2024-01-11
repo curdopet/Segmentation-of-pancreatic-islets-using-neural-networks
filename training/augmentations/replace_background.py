@@ -3,11 +3,11 @@ import cv2
 import random
 
 import numpy as np
-from mmdet.datasets import PIPELINES
+from mmdet.models.utils import mask2ndarray
+from mmdet.registry import TRANSFORMS
 
-print("ReplaceBackground")
 
-@PIPELINES.register_module()
+@TRANSFORMS.register_module()
 class ReplaceBackground:
     """Replaces background with an image.
 
@@ -23,7 +23,7 @@ class ReplaceBackground:
 
     Args:
         background_images_path (str): A path to the directory with the images of background used for replacement
-        prob (float): The probabilty of performing ReplaceBackground transformation
+        prob (float): The probability of performing ReplaceBackground transformation
     """
     def __init__(self, background_images_path: str, prob: float):
         self.background_images_path = background_images_path
@@ -41,16 +41,17 @@ class ReplaceBackground:
 
     @staticmethod
     def get_mask(img, gt_masks):
-        mask = np.zeros_like(img)
+        mask = np.zeros(img.shape[:-1])
 
-        for gt_mask in gt_masks:
+        masks = mask2ndarray(gt_masks)
+        for gt_mask in masks:
             mask += gt_mask
 
-        return mask
+        return mask.astype(np.float32)
 
     def replace_background(self, img, mask):
         # blur mask to make a smooth transition
-        mask[mask >= 100] = 255
+        mask[mask == 1] = 255
         blur = cv2.blur(mask, (7, 7))
 
         # expand the mask to all three channels.
