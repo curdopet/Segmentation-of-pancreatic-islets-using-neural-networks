@@ -95,7 +95,7 @@ python -m data_preparation.create_masks_for_adjacent_islets <data_root>
 ```
 - `data_root` is path to a folder that contains only GT masks
 
-It creates a new directory `adjacent-islets` within the `data_root` that contains GT masks only with adjacent islets that are not empty.
+It creates a new directory `adjacent_islets` within the `data_root` that contains GT masks only with adjacent islets that are not empty.
 
 #### 2. Prepare results for adjacent islets
 Then filter out all results of the model that has no overlap with the GT adjacent islets by running:
@@ -104,11 +104,11 @@ python -m data_preparation.convert_results_to_adjacent_islets_results <data_root
 ```
 - `data_root` is path to a folder that contains two folders:
   - `inputs/` - contains input images
-  - `masks/` - contains GT semantic masks and `adjacent-islets` directory with adjacent islets GT masks
+  - `masks/` - contains GT semantic masks and `adjacent_islets` directory with adjacent islets GT masks
 - `--nn_masks_path` is a path to the directory with predicted NN masks (only for semantic models)
 - `--pkl_file` is a file with the results of instance segmentation in .pkl format (only for instance models)
 
-In the case of a **semantic model**, it created a directory `adjacent-islets` within the `nn_masks_path` that contains 
+In the case of a **semantic model**, it created a directory `adjacent_islets` within the `nn_masks_path` that contains 
 NN masks with islets that have overlap with GT adjacent islets.
 
 In the case of an **instance segmentation model**, it creates a file with name suffix `_adjacent_islets.pkl` 

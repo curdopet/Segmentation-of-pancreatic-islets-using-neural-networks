@@ -23,4 +23,4 @@ class ModelType(Enum):
     INSTANCE = "instance"
 
 
-ADJACENT_ISLETS_DIR = "adjacent-islets"
+ADJACENT_ISLETS_DIR = "adjacent_islets"
