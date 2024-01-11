@@ -52,7 +52,6 @@ class ImageStatsCalculation:
             if result.image_name == self.image_name:
                 self.instance_annotations = result.islet_instances
                 break
-        assert self.instance_annotations is not None
 
     def calculate_gt_and_nn_islet_stats(self):
         islet_stats_gt_nn = list()
@@ -85,12 +84,15 @@ class ImageStatsCalculation:
             islet_stats_gt_nn.append(islet_stats)
 
         self.gt_islet_stats = islet_stats_gt_nn[0]
-        self.nn_islet_stats = islet_stats_gt_nn[1]
+        self.nn_islet_stats = islet_stats_gt_nn[1] if len(islet_stats_gt_nn) > 1 else list()
 
     def get_instances_contours_and_mask(self, mask_shape: tuple) -> Tuple[np.array, np.array, np.array]:
         contours = list()
         mask = np.zeros(mask_shape)
         instance_scores = list()
+
+        if self.instance_annotations is None:
+            return contours, mask, instance_scores
 
         self.instance_annotations.sort(key=lambda x: x.score, reverse=True)
 
