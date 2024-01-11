@@ -123,7 +123,7 @@ train_dataloader = dict(
         metainfo=metainfo,
         pipeline=train_pipeline,
         ann_file='jsons/coco-format-training-islets-only.json',
-        data_prefix=dict(img='training_data/inputs/')))
+        data_prefix=dict(img='training_data/inputs/', seg='training_data/masks/islets_only/')))
 val_dataloader = dict(
     batch_size=1,
     num_workers=1,
@@ -132,7 +132,7 @@ val_dataloader = dict(
         metainfo=metainfo,
         pipeline=test_pipeline,
         ann_file='jsons/coco-format-validation-islets-only.json',
-        data_prefix=dict(img='validation_data/inputs/')))
+        data_prefix=dict(img='validation_data/inputs/', seg='validation_data/masks/islets_only/')))
 test_dataloader = val_dataloader
 
 # Modify metric related settings
