@@ -23,7 +23,6 @@ DATA_GROUPS = ['training', 'validation', 'test']
 ISLET_CLASS = 0
 MIN_BBOX_HEIGHT = 3
 MIN_BBOX_WIDTH = 3
-DILATE = False
 
 
 def parse_input_arguments() -> (str, str, str, str, bool):
@@ -112,24 +111,17 @@ def get_contour_area(contour: np.array, mask: np.array) -> np.array:
 
 def get_contours(mask: np.array) -> np.array:
     islet_mask, exo_mask = get_islet_and_exo_masks(mask)
+    num_components, cc_mask = cv2.connectedComponents(islet_mask, connectivity=4)
 
-    *_, islet_contours, _ = cv2.findContours(islet_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    islet_contours = []
+    for label in range(1, num_components):
+        component_mask = np.uint8(cc_mask == label) * 255
+        contour, _ = cv2.findContours(component_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        islet_contours.append(contour[0])
+
     islet_contours = list(filter(lambda contour: len(contour) >= 5, islet_contours))
 
-    if DILATE:
-        dilated_contours = list()
-        for contour in islet_contours:
-            countour_mask = np.zeros_like(islet_mask)
-            countour_mask = cv2.drawContours(countour_mask, contour, -1, (255, 255, 255), CONTOUR_THICKNESS)
-
-            kernel = np.ones((3, 3), np.uint8)
-            countour_mask = cv2.dilate(countour_mask, kernel, iterations=1)
-
-            *_, contours, _ = cv2.findContours(countour_mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            dilated_contours.extend(contours)
-        return dilated_contours
-    else:
-        return islet_contours
+    return islet_contours
 
 
 def get_islet_annotation_json_dict(contour: np.array, contour_id: int, image_id: int, mask: np.array) -> Optional[dict]:
@@ -222,5 +214,5 @@ if __name__ == "__main__":
                     os.path.join(data_root, "masks")
                 )
 
-    with open(os.path.join(dest_dir, f"coco-format-{data_group}-islets-only-gt{MIN_BBOX_HEIGHT-1}.json"), "w") as f:
+    with open(os.path.join(dest_dir, f"coco-format-{data_group}-islets-only.json"), "w") as f:
         json.dump(json_dict, f)
