@@ -61,7 +61,7 @@ test_dataloader = val_dataloader
 
 # Modify metric related settings
 val_evaluator = dict(ann_file=data_root + 'jsons/coco-format-validation-islets-only.json')
-test_evaluator = dict(ann_file=data_root + 'jsons/coco-format-test-islets-only.json')
+test_evaluator = val_evaluator
 
 # Visualize progress using WandB
 vis_backends = [
