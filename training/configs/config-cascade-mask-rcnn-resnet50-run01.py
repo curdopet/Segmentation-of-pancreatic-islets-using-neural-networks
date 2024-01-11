@@ -109,15 +109,7 @@ val_dataloader = dict(
         pipeline=test_pipeline,
         ann_file='jsons/coco-format-validation-islets-only.json',
         data_prefix=dict(img='validation_data/inputs/')))
-test_dataloader = dict(
-    batch_size=1,
-    num_workers=1,
-    dataset=dict(
-        data_root=data_root,
-        metainfo=metainfo,
-        pipeline=test_pipeline,
-        ann_file='jsons/coco-format-test-islets-only.json',
-        data_prefix=dict(img='test_data/inputs/')))
+test_dataloader = val_dataloader
 
 # Modify metric related settings
 val_evaluator = dict(ann_file=data_root + 'jsons/coco-format-validation-islets-only.json')
