@@ -9,9 +9,11 @@ _base_ = [
 model = dict(
     rpn_head=dict(
             anchor_generator=dict(
-                scales=[2, 4, 8])),
+                scales=[1, 2, 4, 8])),
     roi_head=dict(
-        bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)))
+        bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)),
+    train_cfg=dict(
+        rpn_proposal=dict(nms_pre=3000, max_per_img=1500)))
 
 # Modify dataset related settings
 data_root = '../data_split/'
@@ -78,7 +80,7 @@ vis_backends = [
          init_kwargs={
             'project': 'instance-seg-islets',
             'tags': ['mask-rcnn', 'resnet50'],
-            'name': 'mask-rcnn-resnet50-run03',
+            'name': 'mask-rcnn-resnet50-run05',
          })
 ]
 visualizer = dict(

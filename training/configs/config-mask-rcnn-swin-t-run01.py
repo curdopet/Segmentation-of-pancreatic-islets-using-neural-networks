@@ -1,15 +1,12 @@
 _base_ = [
-    '../../../mmdetection/configs/_base_/models/mask-rcnn_r50_fpn.py',
-    '../../../mmdetection/configs/_base_/datasets/coco_instance.py',
-    '../../../mmdetection/configs/_base_/schedules/schedule_1x.py',
-    '../../../mmdetection/configs/_base_/default_runtime.py',
+    '../../../mmdetection/configs/swin/mask-rcnn_swin-t-p4-w7_fpn_1x_coco.py',
 ]
 
 # We also need to change the num_classes in head to match the dataset's annotation
 model = dict(
     rpn_head=dict(
             anchor_generator=dict(
-                scales=[2, 4, 8])),
+                scales=[1, 2, 4, 8])),
     roi_head=dict(
         bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)))
 
@@ -77,8 +74,8 @@ vis_backends = [
     dict(type='WandbVisBackend',
          init_kwargs={
             'project': 'instance-seg-islets',
-            'tags': ['mask-rcnn', 'resnet50'],
-            'name': 'mask-rcnn-resnet50-run03',
+            'tags': ['mask-rcnn', 'swin-t'],
+            'name': 'mask-rcnn-swin-t-run01',
          })
 ]
 visualizer = dict(

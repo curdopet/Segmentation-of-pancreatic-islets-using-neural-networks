@@ -1,8 +1,5 @@
 _base_ = [
-    '../../../mmdetection/configs/_base_/models/cascade-mask-rcnn_r50_fpn.py',
-    '../../../mmdetection/configs/_base_/datasets/coco_instance.py',
-    '../../../mmdetection/configs/_base_/schedules/schedule_1x.py',
-    '../../../mmdetection/configs/_base_/default_runtime.py',
+    '../../../mmdetection/configs/htc/htc_r50_fpn_1x_coco.py',
 ]
 
 # We also need to change the num_classes in head to match the dataset's annotation
@@ -10,7 +7,8 @@ model = dict(
     rpn_head=dict(
             anchor_generator=dict(
                 scales=[1, 2, 4, 8])),
-    oi_head=dict(
+    roi_head=dict(
+        semantic_head=dict(num_classes=2),
         bbox_head=[
             dict(
                 type='Shared2FCBBoxHead',
@@ -63,7 +61,33 @@ model = dict(
                     loss_weight=1.0),
                 loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))
         ],
-        mask_head=dict(num_classes=1)))
+        mask_head=[
+            dict(
+                type='HTCMaskHead',
+                with_conv_res=False,
+                num_convs=4,
+                in_channels=256,
+                conv_out_channels=256,
+                num_classes=1,
+                loss_mask=dict(
+                    type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)),
+            dict(
+                type='HTCMaskHead',
+                num_convs=4,
+                in_channels=256,
+                conv_out_channels=256,
+                num_classes=1,
+                loss_mask=dict(
+                    type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)),
+            dict(
+                type='HTCMaskHead',
+                num_convs=4,
+                in_channels=256,
+                conv_out_channels=256,
+                num_classes=1,
+                loss_mask=dict(
+                    type='CrossEntropyLoss', use_mask=True, loss_weight=1.0))
+        ]))
 
 # Modify dataset related settings
 data_root = '../data_split/'
@@ -74,14 +98,14 @@ metainfo = {
 # Train & Val pipeline
 backend_args = None
 train_pipeline = [
-    dict(type='LoadImageFromFile', backend_args=backend_args),
+    dict(type='LoadImageFromFile', backend_args={{_base_.backend_args}}),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
     dict(type='Resize', scale=(2048, 1536), keep_ratio=True),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PackDetInputs')
 ]
 test_pipeline = [
-    dict(type='LoadImageFromFile', backend_args=backend_args),
+    dict(type='LoadImageFromFile', backend_args={{_base_.backend_args}}),
     dict(type='Resize', scale=(2048, 1536), keep_ratio=True),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
     dict(
@@ -129,8 +153,8 @@ vis_backends = [
     dict(type='WandbVisBackend',
          init_kwargs={
             'project': 'instance-seg-islets',
-            'tags': ['cascade-mask-rcnn', 'resnet50'],
-            'name': 'cascade-mask-rcnn-resnet50-run01',
+            'tags': ['htc', 'resnet50'],
+            'name': 'htc-resnet50-run01',
          })
 ]
 visualizer = dict(

@@ -1,17 +1,31 @@
 _base_ = [
     '../../../mmdetection/configs/_base_/models/mask-rcnn_r50_fpn.py',
     '../../../mmdetection/configs/_base_/datasets/coco_instance.py',
-    '../../../mmdetection/configs/_base_/schedules/schedule_1x.py',
+    '../../../mmdetection/configs/_base_/schedules/schedule_2x.py',
     '../../../mmdetection/configs/_base_/default_runtime.py',
 ]
 
 # We also need to change the num_classes in head to match the dataset's annotation
 model = dict(
+    backbone=dict(
+        type='ResNeXt',
+        depth=101,
+        groups=32,
+        base_width=4,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        style='pytorch',
+        init_cfg=dict(
+            type='Pretrained', checkpoint='open-mmlab://resnext101_32x4d')),
     rpn_head=dict(
             anchor_generator=dict(
-                scales=[2, 4, 8])),
+                scales=[1, 2, 4, 8])),
     roi_head=dict(
-        bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)))
+        bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)),
+    train_cfg=dict(
+        rpn_proposal=dict(nms_pre=3000, max_per_img=1500)))
 
 # Modify dataset related settings
 data_root = '../data_split/'
@@ -77,8 +91,8 @@ vis_backends = [
     dict(type='WandbVisBackend',
          init_kwargs={
             'project': 'instance-seg-islets',
-            'tags': ['mask-rcnn', 'resnet50'],
-            'name': 'mask-rcnn-resnet50-run03',
+            'tags': ['mask-rcnn', 'resnext101'],
+            'name': 'mask-rcnn-resnext101-run02',
          })
 ]
 visualizer = dict(
@@ -87,4 +101,7 @@ visualizer = dict(
     name='visualizer')
 
 # Train config
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=12, val_interval=1)
+optim_wrapper = dict(
+    type='OptimWrapper',
+    optimizer=dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001))
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=24, val_interval=1)

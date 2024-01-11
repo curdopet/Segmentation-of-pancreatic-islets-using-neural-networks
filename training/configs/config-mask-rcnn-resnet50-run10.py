@@ -5,11 +5,13 @@ _base_ = [
     '../../../mmdetection/configs/_base_/default_runtime.py',
 ]
 
+custom_imports = dict(imports=['augmentations.islet_addition'], allow_failed_imports=False)
+
 # We also need to change the num_classes in head to match the dataset's annotation
 model = dict(
     rpn_head=dict(
             anchor_generator=dict(
-                scales=[2, 4, 8])),
+                scales=[1, 2, 4, 8])),
     roi_head=dict(
         bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)))
 
@@ -25,7 +27,8 @@ train_pipeline = [
     dict(type='LoadImageFromFile', backend_args=backend_args),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
     dict(type='Resize', scale=(2048, 1536), keep_ratio=True),
-    dict(type='RandomFlip', prob=0.5),
+    dict(type='IsletAddition', prob=0.5, max_islet_size_px=10.0),
+    dict(type='RandomFlip', prob=0.2),
     dict(type='PackDetInputs')
 ]
 test_pipeline = [
@@ -78,7 +81,7 @@ vis_backends = [
          init_kwargs={
             'project': 'instance-seg-islets',
             'tags': ['mask-rcnn', 'resnet50'],
-            'name': 'mask-rcnn-resnet50-run03',
+            'name': 'mask-rcnn-resnet50-run10',
          })
 ]
 visualizer = dict(

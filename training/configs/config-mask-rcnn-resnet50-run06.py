@@ -1,7 +1,7 @@
 _base_ = [
     '../../../mmdetection/configs/_base_/models/mask-rcnn_r50_fpn.py',
     '../../../mmdetection/configs/_base_/datasets/coco_instance.py',
-    '../../../mmdetection/configs/_base_/schedules/schedule_1x.py',
+    '../../../mmdetection/configs/_base_/schedules/schedule_2x.py',
     '../../../mmdetection/configs/_base_/default_runtime.py',
 ]
 
@@ -9,7 +9,7 @@ _base_ = [
 model = dict(
     rpn_head=dict(
             anchor_generator=dict(
-                scales=[2, 4, 8])),
+                scales=[1, 2, 4, 8])),
     roi_head=dict(
         bbox_head=dict(num_classes=1), mask_head=dict(num_classes=1)))
 
@@ -78,7 +78,7 @@ vis_backends = [
          init_kwargs={
             'project': 'instance-seg-islets',
             'tags': ['mask-rcnn', 'resnet50'],
-            'name': 'mask-rcnn-resnet50-run03',
+            'name': 'mask-rcnn-resnet50-run06',
          })
 ]
 visualizer = dict(
@@ -87,4 +87,4 @@ visualizer = dict(
     name='visualizer')
 
 # Train config
-train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=12, val_interval=1)
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=24, val_interval=1)
