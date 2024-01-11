@@ -182,8 +182,8 @@ if __name__ == "__main__":
     
     annotation_id = 0
 
-    with Bar('Loading', max=get_images_cnt(data_root + "/inputs"), fill='█', suffix='%(percent).1f%% - %(eta)ds') as bar:
-        for image_name in next(os.walk(data_root + "/inputs"))[2]:
+    with Bar('Loading', max=get_images_cnt(os.path.join(data_root, "/inputs")), fill='█', suffix='%(percent).1f%% - %(eta)ds') as bar:
+        for image_name in next(os.walk(os.path.join(data_root, "/inputs")))[2]:
             if "GT" in image_name or image_name.startswith(".") or not is_image(image_name):
                 continue
 
